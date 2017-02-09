@@ -68,6 +68,7 @@ void apot_init(void)
   add_pot(exp_decay, 2);
   add_pot(bjs, 3);
   add_pot(parabola, 3);
+  add_pot(harmonic, 2);
   add_pot(csw, 4);
   add_pot(universal, 4);
   add_pot(const, 1);
@@ -77,9 +78,11 @@ void apot_init(void)
   add_pot(double_morse, 7);
   add_pot(double_exp, 5);
   add_pot(poly_5, 5);
+  add_pot(poly_2, 3);
   add_pot(kawamura, 9);
   add_pot(kawamura_mix, 12);
   add_pot(exp_plus, 3);
+  add_pot(exp_coul, 3);
   add_pot(mishin, 6);
   add_pot(gen_lj, 5);
   add_pot(gljm, 12);
@@ -502,6 +505,19 @@ void parabola_value(double r, double *p, double *f)
 
 /****************************************************************
  *
+ * harmonic potential
+ *
+ ****************************************************************/
+
+void harmonic_value(double r, double *p, double *f)
+{
+
+  *f = p[0] * (r - p[1]) * (r - p[1]);
+}
+
+
+/****************************************************************
+ *
  * chantasiriwan (csw) and milstein potential
  *
  * http://dx.doi.org/doi:10.1103/PhysRevB.53.14080
@@ -638,6 +654,21 @@ void double_exp_value(double r, double *p, double *f)
 
 /****************************************************************
  *
+ * poly 2 potential
+ *
+ ****************************************************************/
+
+void poly_2_value(double r, double *p, double *f)
+{
+  static double dr2;
+
+  dr2 = (r - p[2]) * (r - p[2]);
+
+  *f = p[0] +  p[1] * dr2;
+}
+
+/****************************************************************
+ *
  * poly 5 potential
  *
  * http://dx.doi.org/doi:10.1557/proc-538-535
@@ -691,6 +722,17 @@ void kawamura_mix_value(double r, double *p, double *f)
 void exp_plus_value(double r, double *p, double *f)
 {
   *f = p[0] * exp(-p[1] * r) + p[2];
+}
+
+/****************************************************************
+ *
+ * exp_coul potential
+ *
+ ****************************************************************/
+
+void exp_coul_value(double r, double *p, double *f)
+{
+  *f = p[0] * (1 + p[1]/r) * exp(-p[2] * r );
 }
 
 /****************************************************************
@@ -1220,13 +1262,13 @@ void elstat_value(double r, double dp_kappa, double *ftail, double *gtail, doubl
   x[3] = exp(-x[0] * x[1]);
 
   *ftail = dp_eps * erfc(dp_kappa * r) / r;
-  *gtail = -(*ftail + x[2] * x[3]) / x[0];
-  *ggtail = (2 * x[1] * x[2] * x[3] - *gtail * 3) / x[0];
+  *gtail = -(*ftail + x[2] * x[3]) / x[0];                /* 1/r df/dr */
+  *ggtail = (2 * x[1] * x[2] * x[3] - *gtail * 3) / x[0]; /* 1/r dg/dr */
 }
 
 /****************************************************************
  *
- * shifted tail of coloumb potential
+ * shifted tail of coulomb potential
  *
  ****************************************************************/
 
@@ -1250,6 +1292,29 @@ void elstat_shift(double r, double dp_kappa, double *fnval_tail, double *grad_ta
   *grad_tail -= x[2] * ggtail_cut / 2;
   *ggrad_tail = ggtail - ggtail_cut;
 #endif /* DIPOLE */
+}
+
+
+/****************************************************************
+ *
+ * damped shifted force Coulomb potential
+ * http://dx.doi.org/10.1063/1.2206581
+ *
+ ****************************************************************/
+
+void elstat_dsf(double r, double dp_kappa, double *fnval_tail, double *grad_tail, double *ggrad_tail)
+{
+  static double ftail, gtail, ggtail, ftail_cut, gtail_cut, ggtail_cut;
+
+
+  elstat_value(r, dp_kappa, &ftail, &gtail, &ggtail);
+  elstat_value(dp_cut, dp_kappa, &ftail_cut, &gtail_cut, &ggtail_cut);
+
+  *fnval_tail =
+      ftail - ftail_cut - (r - dp_cut) * gtail_cut * dp_cut;
+  *grad_tail = gtail - gtail_cut * dp_cut / r; /*  1/r dV/r */
+  *ggrad_tail = 0.0;
+
 }
 
 /****************************************************************
