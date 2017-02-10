@@ -96,6 +96,7 @@ typedef struct {
 #ifdef THREEBODY
 typedef struct {
   double cos;
+  double theta;
 #ifdef MEAM
   int   slot;
   double shift;

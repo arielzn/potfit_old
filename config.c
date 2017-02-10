@@ -76,6 +76,7 @@ void read_config(char *filename)
   int   ijk;
   int   nnn;
   double ccos;
+  double theta;
 #endif /* THREEBODY */
 
   /* initialize elements array */
@@ -955,6 +956,8 @@ void read_config(char *filename)
 	    atoms[i].neigh[j].dist_r.z * atoms[i].neigh[k].dist_r.z;
 
 	  atoms[i].angle_part[ijk].cos = ccos;
+	  theta = acos(ccos);
+          atoms[i].angle_part[ijk].theta = theta;
 
 	  col = 2 * paircol + 2 * ntypes + atoms[i].type;
 	  if (0 == format || 3 == format) {
@@ -965,10 +968,13 @@ void read_config(char *filename)
 	    }
 #ifdef MEAM
 	    istep = calc_pot.invstep[col];
-	    slot = (int)((ccos + 1) * istep);
-	    shift = ((ccos + 1) - slot * calc_pot.step[col]) * istep;
+	    slot = (int)(theta * istep);
+	    shift = (theta - slot * calc_pot.step[col]) * istep;
 	    slot += calc_pot.first[col];
 	    step = calc_pot.step[col];
+
+   printf("type  %d %f  \n", calc_pot.first[col], calc_pot.step[col]);
+   printf("type %d %d %d ang %f  \n", atoms[i].neigh[j].type, atoms[i].type, atoms[i].neigh[k].type, theta*180/M_PI);
 
 	    /* Don't want lower bound spline knot to be final knot or upper
 	       bound knot will cause trouble since it goes beyond the array */
@@ -1251,16 +1257,17 @@ void read_config(char *filename)
     calc_pot.begin[j] = min * 0.95;
   }
   /* g_i */
-  /* g_i takes cos(theta) as an argument, so we need to tabulate it only
-     in the range of [-1:1]. Actually we use [-1.1:1.1] to be safe. */
+ /* update angular function table */
+ /* g takes theta as an argument (acos(cos)), so we need to tabulate it only
+ in the range of [0:Pi]. Actually we use [-0.1:3.17] to be safe. */
   for (i = 0; i < ntypes; i++) {
     j = 2 * paircol + 2 * ntypes + i;
-    apot_table.begin[j] = -1.1;
-    opt_pot.begin[j] = -1.1;
-    calc_pot.begin[j] = -1.1;
-    apot_table.end[j] = 1.1;
-    opt_pot.end[j] = 1.1;
-    calc_pot.end[j] = 1.1;
+    apot_table.begin[j] = -0.1;
+    opt_pot.begin[j] = -0.1;
+    calc_pot.begin[j] = -0.1;
+    apot_table.end[j] = 3.17;
+    opt_pot.end[j] = 3.17;
+    calc_pot.end[j] = 3.17;
   }
 #endif /* MEAM */
 

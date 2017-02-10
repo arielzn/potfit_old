@@ -103,6 +103,7 @@ double calc_forces(double *xi_opt, double *forces, int flag)
   int   h, j, k;
   int   n_i, n_j, n_k;
   int   uf;
+  double angcontrib;
 #ifdef APOT
   double temp_eng;
 #endif /* APOT */
@@ -363,6 +364,7 @@ double calc_forces(double *xi_opt, double *forces, int flag)
 
 	  for (j = 0; j < atom->num_neigh - 1; j++) {
 
+
 	    /* Get pointer to neighbor jj */
 	    neigh_j = atom->neigh + j;
 
@@ -371,6 +373,7 @@ double calc_forces(double *xi_opt, double *forces, int flag)
 	      /* Get pointer to neighbor kk */
 	      neigh_k = atom->neigh + k;
 
+
 	      /* The cos(theta) should always lie inside -1 ... 1
 	         So store the g and g' without checking bounds */
 	      angle->g = splint_comb_dir(&calc_pot, xi, angle->slot, angle->shift, angle->step, &angle->dg);
@@ -378,6 +381,12 @@ double calc_forces(double *xi_opt, double *forces, int flag)
 	      /* Sum up rho piece for atom i caused by j and k
 	         f_ij * f_ik * m_ijk */
 	      atom->rho += neigh_j->f * neigh_k->f * angle->g;
+	      angcontrib = neigh_j->f * neigh_k->f * angle->g;
+
+#if defined(DEBUG)
+              //printf("conf:%d %d %d %d  %f  \n",  atom->conf,  neigh_j->type , atom->type, neigh_k->type, angle->theta*180/M_PI );
+              printf("conf:%d %d %d %d  %f  %f \n",  atom->conf,  neigh_j->type , atom->type, neigh_k->type, angle->g ,angle->theta );
+#endif 
 
 	      /* Increase angl pointer */
 	      angle++;
